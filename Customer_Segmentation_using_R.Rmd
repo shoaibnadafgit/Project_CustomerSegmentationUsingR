@@ -9,6 +9,6 @@ Try executing this chunk by clicking the *Run* button within the chunk or by pla
 
 ```{r}
 print("Hello")
-print ("hello 1")
-
+print ("hello1")
+print("hello3")
 ```
