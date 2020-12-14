@@ -1,0 +1,267 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+
+data <- read.csv("D://VisualStudioCode//R//CustomerSegmentationusingR//Project_CustomerSegmentationUsingR//data.csv")
+
+data
+
+df <- data.frame(data)
+```
+Get the structure  and summary of the data frame.
+```{r}
+typeof(df)
+str(df)
+summary(df)
+```
+
+# Customer Segmentation using RFM Analysis (R)
+
+**RFM (recency, frequency, monetary) analysis is a marketing technique used to determine quantitatively which customers are the best ones by examining **
+
+* how recently a customer has purchased (recency), 
+* how often they purchase (frequency), 
+* and how much the customer spends (monetary).
+
+https://help.synerise.com/use-cases/all-cases/_gfx/rfm1.png
+
+ Identifying the most valuable RFM segments can capitalize on chance relationships in the data used for this analysis.
+ 
+# Load libraries :
+ 
+```{r}
+library(data.table)
+library(dplyr)
+library(ggplot2)
+#library(stringr)
+#library(DT)
+library(tidyr)
+library(knitr)
+library(rmarkdown)
+library(lubridate)
+
+```
+
+
+
+++++++++++++++++++++++
+
+```{r}
+glimpse(df)
+```
+
+
+```{r}
+retail <- data.frame(df)
+retail$InvoiceDate <- as.Date(retail$InvoiceDate, '%m/%d/%Y %H:%M')
+range(retail$InvoiceDate)
+```
+```{r}
+retail <- subset(retail, InvoiceDate >= "2010-12-09")
+range(retail$InvoiceDate)
+```
+
+```{r}
+table(retail$Country)
+countries <- as.data.frame(table(retail$Country))
+names(countries)[names(countries) == 'Var1'] <- 'country'
+
+retail <- subset(retail, Country == "United Kingdom")
+
+length(unique(retail$InvoiceNo))
+length(unique(retail$CustomerID))
+
+# Identify returns
+retail$item.return <- grepl("C", retail$InvoiceNo, fixed=TRUE)
+retail$purchase.invoice <- ifelse(retail$item.return=="TRUE", 0, 1)
+table(retail$item.return)
+table(retail$purchase.invoice)
+prop.table(table(retail$item.return))
+```
+```{r}
+customers <- as.data.frame(unique(retail$CustomerID))
+names(customers) <- "CustomerID"
+```
+
+
+
+```{r}
+# Recency #
+###########
+
+retail$recency <- as.Date("2011-12-10") - as.Date(retail$InvoiceDate)
+
+# remove returns so only consider the data of most recent *purchase*
+temp <- subset(retail, purchase.invoice == 1)
+
+# Obtain # of days since most recent purchase
+recency <- aggregate(recency ~ CustomerID, data=temp, FUN=min, na.rm=TRUE)
+
+# Add recency to customer data
+customers <- merge(customers, recency, by="CustomerID", all=TRUE, sort=TRUE)
+customers$recency <- as.numeric(customers$recency)
+```
+
+```{r}
+# Frequency #
+#############
+
+customer.invoices <- subset(retail, select = c("CustomerID","InvoiceNo", "purchase.invoice"))
+customer.invoices <- customer.invoices[!duplicated(customer.invoices), ]
+customer.invoices <- customer.invoices[order(customer.invoices$CustomerID),]
+row.names(customer.invoices) <- NULL
+
+# Number of invoices/year (purchases only)
+annual.invoices <- aggregate(purchase.invoice ~ CustomerID, data=customer.invoices, FUN=sum, na.rm=TRUE)
+names(annual.invoices)[names(annual.invoices)=="purchase.invoice"] <- "frequency"
+
+# Add # of invoices to customers data
+customers <- merge(customers, annual.invoices, by="CustomerID", all=TRUE, sort=TRUE)
+
+range(customers$frequency)
+table(customers$frequency)
+
+# Remove customers who have not made any purchases in the past year
+customers <- subset(customers, frequency > 0)
+
+```
+
+```{r}
+###############################
+# Monetary Value of Customers #
+###############################
+
+# Total spent on each item on an invoice
+retail$Amount <- retail$Quantity * retail$UnitPrice
+
+# Aggregated total sales to customer
+annual.sales <- aggregate(Amount ~ CustomerID, data=retail, FUN =sum, na.rm=TRUE)
+names(annual.sales)[names(annual.sales)=="Amount"] <- "monetary"
+
+# Add monetary value to customers dataset
+customers <- merge(customers, annual.sales, by="CustomerID", all.x=TRUE, sort=TRUE)
+
+# Identify customers with negative monetary value numbers, as they were presumably returning purchases from the preceding year
+hist(customers$monetary, main = NULL, labels = TRUE, las = 1, cex.lab = 1.1, cex.axis = 1.1, col = "blue")
+customers$monetary <- ifelse(customers$monetary < 0, 0, customers$monetary) # reset negative numbers to zero
+hist(customers$monetary, labels = TRUE, type = "count", breaks = 10, las = 1, col = "blue")
+
+```
+```{r}
+####################
+# 80% and 20% rule #
+####################
+
+customers <- customers[order(-customers$monetary),]
+
+# Apply Pareto Principle (80/20 Rule)
+pareto.cutoff <- 0.8 * sum(customers$monetary)
+# customers <- customers[,!customers$cumsum]
+customers$pareto <- ifelse(cumsum(customers$monetary) <= pareto.cutoff, "Top 20%", "Bottom 80%")
+customers$pareto <- factor(customers$pareto, levels=c("Top 20%", "Bottom 80%"), ordered=TRUE)
+levels(customers$pareto)
+round(prop.table(table(customers$pareto)), 2)
+
+customers <- customers[order(customers$CustomerID),]
+```
+
+
+# Calculate RFM
+
+**To implement the RFM analysis, we need to further process the data set in by the following steps:**
+
+>> Find the most recent date for each ID and calculate the days to the now or some other date, to get the Recency data
+
+>> Calculate the quantity of translations of a customer, to get the Frequency data
+Sum the amount of money a customer spent and divide it by Frequency, to get the amount per transaction on average, that is the Monetary data.
+
+
+Note : (Data currency is monetary value assigned to data to identify its financial significance to an organization. Once the monetary value of data assets is identified, it may be used as the unit of exchange in a transaction, either as the sole payment or in combination with money.) 
+
+```{r}
+kable(head(customers))
+
+```
+
+
+
+
+# Data Preprocessing
+Because the data isn't normally distributed, so i transform the data with logarithmic transformation and z-score standardization.
+
+```{r}
+###################
+# preprocess data #
+###################
+
+# Log-transform positively-skewed variables
+customers$recency.log <- log(customers$recency)
+customers$frequency.log <- log(customers$frequency)
+customers$monetary.log <- customers$monetary + 0.1 # can't take log(0), so add a small value to remove zeros
+customers$monetary.log <- log(customers$monetary.log)
+customers <- customers[complete.cases(customers), ]
+
+# Z-scores
+customers$recency.z <- scale(customers$recency.log, center=TRUE, scale=TRUE)
+customers$frequency.z <- scale(customers$frequency.log, center=TRUE, scale=TRUE)
+customers$monetary.z <- scale(customers$monetary.log, center=TRUE, scale=TRUE)
+
+##################
+# visualize data #
+##################
+
+library(ggplot2)
+library(scales)
+
+# Original scale
+scatter.1 <- ggplot(customers, aes(x = frequency, y = monetary))
+scatter.1 <- scatter.1 + geom_point(aes(colour = recency, shape = pareto))
+scatter.1 <- scatter.1 + scale_shape_manual(name = "80/20 Designation", values=c(17, 16))
+scatter.1 <- scatter.1 + scale_colour_gradient(name="Recency\n(Days since Last Purchase))")
+scatter.1 <- scatter.1 + scale_y_continuous(label=dollar)
+scatter.1 <- scatter.1 + xlab("Frequency (Number of Purchases)")
+scatter.1 <- scatter.1 + ylab("Monetary Value of Customer (Annual Sales)")
+scatter.1
+
+# Log-transformed
+scatter.2 <- ggplot(customers, aes(x = frequency.log, y = monetary.log))
+scatter.2 <- scatter.2 + geom_point(aes(colour = recency.log, shape = pareto))
+scatter.2 <- scatter.2 + scale_shape_manual(name = "80/20 Designation", values=c(17, 16))
+scatter.2 <- scatter.2 + scale_colour_gradient(name="Log-transformed Recency")
+scatter.2 <- scatter.2 + xlab("Log-transformed Frequency")
+scatter.2 <- scatter.2 + ylab("Log-transformed Monetary Value of Customer")
+scatter.2
+```
+
+
+
+
+```{r}
+#####################
+# Handling Outliers #
+#####################
+
+# How many customers are represented by the two data points in the lower left-hand corner of the plot? 18
+delete <- subset(customers, monetary.log < 0)
+no.value.custs <- unique(delete$CustomerID)
+delete2 <- subset(retail, CustomerID %in% no.value.custs)
+delete2 <- delete2[order(delete2$CustomerID, delete2$InvoiceDate),]
+customers$recency.z <- as.numeric(customers$recency.z)
+customers$frequency.z <- as.numeric(customers$frequency.z)
+customers$monetary.z <- as.numeric(customers$monetary.z)
+# Scaled variables
+scatter.3 <- ggplot(customers, aes(x = customers$frequency.z, y = customers$monetary.z))
+scatter.3 <- scatter.3 + geom_point(aes(colour = recency.z, shape = pareto))
+scatter.3 <- scatter.3 + scale_shape_manual(name = "80/20 Designation", values=c(17, 16))
+scatter.3 <- scatter.3 + scale_colour_gradient(name="Z-scored Recency")
+scatter.3 <- scatter.3 + xlab("Z-scored Frequency")
+scatter.3 <- scatter.3 + ylab("Z-scored Monetary Value of Customer")
+scatter.3
+```
+
+
+#Predictive Analytics
