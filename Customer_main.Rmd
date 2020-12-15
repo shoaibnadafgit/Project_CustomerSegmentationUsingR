@@ -6,8 +6,8 @@ output: html_notebook
 
 ```{r}
 
-data <- read.csv("D://VisualStudioCode//R//CustomerSegmentationusingR//Project_CustomerSegmentationUsingR//data.csv")
-
+#data <- read.csv("D://VisualStudioCode//R//CustomerSegmentationusingR//Project_CustomerSegmentat#ionUsingR//data.csv")
+data <- read.csv("E:/Project/CustomerSegmentataion/data.csv")
 data
 
 df <- data.frame(data)
@@ -170,7 +170,7 @@ Huge difference between the 3rd and maximum number of purcchases (7,812) Let’s
 summary(customers$frequency)
 boxplot(customers$CustomerID, xlab = "CustomeId" , ylab = "No of purchese per customer")
 boxplot(customers$frequency , xlab = "frequency" , ylab = "No of purchese per customer")
-densityplot(customers$frequency)
+#densityplot(customers$frequency)
 ```
 
 
@@ -262,8 +262,8 @@ Below,the Users RFM table, this table includes each CustomerID and their respect
 
 
 ```{r}
-Users_RFM <- merge(Users_Recency, User_Frequency) # Merging Recency and Frequency
-Users_RFM <- merge(Users_RFM, Users_Monetary_Value) # Merging Monetary Value
+Users_RFM <- merge(recency,customers$frequency) # Merging Recency and Frequency
+Users_RFM <- merge(Users_RFM, customers$monetary) # Merging Monetary Value
 DT::datatable((Users_RFM),
               rownames = FALSE,
               options = list(
@@ -367,4 +367,167 @@ scatter.3
 ```
 
 
-#Predictive Analytics
+# Clustering :
+
+
+```{r}
+###########################################
+# Determine number of cluster/run k-means #
+###########################################
+
+# subset only rfm features
+preprocessed <- customers[,9:11]
+
+j <- 10 # specify the maximum number of clusters you want to try out
+
+models <- data.frame(k=integer(),
+                     tot.withinss=numeric(),
+                     betweenss=numeric(),
+                     totss=numeric(),
+                     rsquared=numeric())
+
+for (k in 1:j ) {
+  
+  print(k)
+  
+  # Run kmeans
+  # nstart = number of initial configurations; the best one is used
+  output <- kmeans(preprocessed, centers = k, nstart = 20)
+  # $iter will return the iteration used for the final model
+  
+  # Add cluster membership to customers dataset
+  var.name <- paste("cluster", k, sep="_")
+  customers[,(var.name)] <- output$cluster
+  customers[,(var.name)] <- factor(customers[,(var.name)], levels = c(1:k))
+  
+  # Graph clusters
+  cluster_graph <- ggplot(customers, aes(x = frequency.z, y = monetary.z))
+  cluster_graph <- cluster_graph + geom_point(aes(colour = customers[,(var.name)]))
+  colors <- c('red','orange','green3','deepskyblue','blue','darkorchid4','violet','pink1','tan3','black')
+  cluster_graph <- cluster_graph + scale_colour_manual(name = "Cluster Group", values=colors)
+  cluster_graph <- cluster_graph + xlab("Z-transformed Frequency")
+  cluster_graph <- cluster_graph + ylab("Z-transformed Monetary Value of Customer")
+  title <- paste("k-means Cluster dengan", k, sep=" ")
+  title <- paste(title, "Clusters", sep=" ")
+  cluster_graph <- cluster_graph + ggtitle(title)
+  print(cluster_graph)
+  
+  # Cluster centers in original metrics
+  library(plyr)
+  print(title)
+  cluster_centers <- ddply(customers, .(customers[,(var.name)]), summarize,
+                           monetary=round(mean(monetary),2),# use median b/c this is the raw, heavily-skewed data
+                           frequency=round(mean(frequency),1),# but this is k_means, so we use the mean
+                           recency=round(mean(recency), 0))
+  names(cluster_centers)[names(cluster_centers)=="customers[, (var.name)]"] <- "Cluster"
+  print(cluster_centers)
+  cat("\n")
+  cat("\n")
+  
+  # Collect model information
+  models[k,("k")] <- k
+  models[k,("tot.withinss")] <- output$tot.withinss # the sum of all within sum of squares
+  models[k,("betweenss")] <- output$betweenss
+  models[k,("totss")] <- output$totss # betweenss + tot.withinss
+  models[k,("rsquared")] <- round(output$betweenss/output$totss, 3) # percentage of variance explained by cluster membership
+  assign("models", models, envir = .GlobalEnv)
+  
+  # remove(output, var.name, cluster_graph, cluster_centers, title, colors)
+  
+}
+```
+
+
+```{r}
+output1 <- kmeans(preprocessed, centers = 1)
+output2 <- kmeans(preprocessed, centers = 2)
+output3 <- kmeans(preprocessed, centers = 3)
+output4 <- kmeans(preprocessed, centers = 4)
+output5 <- kmeans(preprocessed, centers = 5)
+output6 <- kmeans(preprocessed, centers = 6)
+output7 <- kmeans(preprocessed, centers = 7)
+output8 <- kmeans(preprocessed, centers = 8)
+output9 <- kmeans(preprocessed, centers = 9)
+output10 <- kmeans(preprocessed, centers = 10)
+```
+
+
+
+```{r}
+library(factoextra)
+output1$size
+output1$centers
+
+output2$size
+output2$centers
+
+output3$size
+output3$centers
+
+output4$size
+output4$centers
+
+output5$size
+output5$centers
+
+output6$size
+output6$centers
+
+output7$size
+output7$centers
+
+output8$size
+output8$centers
+
+output9$size
+output9$centers
+
+output10$size
+output10$centers
+
+# with factoextra
+fviz_cluster(output2, data = preprocessed, stand = FALSE,
+                     main = paste("k-means Solution with k = 2"),
+                     choose.vars = c("frequency.z", "monetary.z"),
+                     star.plot = FALSE, 
+                     show.clust.cent = TRUE, 
+                     geom = "point",palette = "jco", ggtheme = theme_minimal())
+
+# with factoextra
+fviz_cluster(output5, data = preprocessed, stand = FALSE,
+                     main = paste("k-means Solution with k = 5"),
+                     choose.vars = c("frequency.z", "monetary.z"),
+                     star.plot = FALSE, 
+                     show.clust.cent = TRUE, 
+                     geom = "point",palette = "jco", ggtheme = theme_minimal())
+```
+
+
+
+#The Best "k"
+
+```{r}
+# Graph variance explained by number of clusters
+r2_graph <- ggplot(models, aes(x = k, y = rsquared))
+r2_graph <- r2_graph + geom_point() + geom_line() + geom_text(aes(label = models$rsquared),hjust=1.15, vjust="outward")
+r2_graph <- r2_graph + scale_y_continuous(labels = scales::percent)
+r2_graph <- r2_graph + scale_x_continuous(breaks = 1:j)
+r2_graph <- r2_graph + xlab("k (Number of Clusters)")
+r2_graph <- r2_graph + ylab("Variance Explained")
+r2_graph
+
+# with factoextra
+fviz_nbclust(preprocessed, kmeans, method = "wss") +
+  geom_vline(xintercept = 2, linetype = 2)
+
+# Graph within sums of squares by number of clusters
+# Look for a "bend" in the graph, as with a scree plot
+ss_graph <- ggplot(models, aes(x = k, y = tot.withinss))
+ss_graph <- ss_graph + geom_point() + geom_line() + geom_text(aes(label = round(models$tot.withinss, 2)),hjust=0, vjust="inward")
+ss_graph <- ss_graph + scale_x_continuous(breaks = 1:j)
+ss_graph <- ss_graph + scale_y_continuous(labels = scales::comma)
+ss_graph <- ss_graph + xlab("k (Number of Clusters)")
+ss_graph <- ss_graph + ylab("Total Within SS")
+ss_graph
+```
+

@@ -1,0 +1,118 @@
+
+=======
+---
+title: "Customer Segmentation using R"
+output: html_notebook
+---
+
+# cONNECT TO AWS S3
+
+## Authenticate With aws.s3
+need to install the aws.s3 package.
+```{r}
+#install.packages("aws.s3")
+```
+
+Load Library
+```{r}
+library(aws.s3)
+```
+
+Here are  ,
+myaccesskey : AKIASLJSTH7SVRFIDUGC
+mysecretkey : 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
+
+
+In order to connect to S3, need to authenticate.
+set environment variables like this
+```{r}
+Sys.setenv(
+  "AWS_ACCESS_KEY_ID" = "AKIASLJSTH7SVRFIDUGC",
+  "AWS_SECRET_ACCESS_KEY" = "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",
+ "AWS_DEFAULT_REGION" = "ap-southeast-1"
+   #"us-east-1"
+   #"ap-southeast-1"
+)
+
+```
+
+```{r}
+#bucketlist()
+```
+
+Two errors I stumbled upon here were
+
+Forbidden (HTTP 403) because I inserted the wrong credentials for my user
+Forbidden (HTTP 403) because I incorrectly set up my user’s permission to access S3
+
+Alternatively, you can pass your access key and secret access key as parameters to aws.s3 functions directly. For example, you can make calls like this.
+
+```{r}
+bucketlist(key = "AKIASLJSTH7SVRFIDUGC", secret = "C1LD9BDqm7KdpdGh5Q4/8gSMwDS9efFQIVB5sgIj")
+```
+
+# Read And Write Data From/To S3
+
+# Write :
+
+Let’s start by uploading a couple CSV files to S3.
+
+```{r}
+# Save customer segmentation datasets to CSV files in tempdir()
+
+#write.csv(customersegmentation_data, file.path(tempdir(), "data.csv"))
+```
+
+```{r}
+# Upload files to S3 bucket
+```
+
+put_object(
+  file = file.path(tempdir(), "data.csv"), 
+  object = "data.csv", 
+  bucket = "customersegmentation_data"
+)
+
+If you get an error like 301 Moved Permanently, it most likely means that something’s gone wrong with regards to your region. It could be that
+
+You’ve misspelled or inserted the wrong region name for the environment variable AWS_DEFAULT_REGION (if you’re using environment vars)
+You’ve misspelled or inserted the wrong region name for the region parameter of put_object() (if you aren’t using environment vars)
+You’ve incorrectly set up your user’s permissions
+These files are pretty small, so uploading them is a breeze. If you’re trying to upload a big file (> 100MB), you may want to set multipart = TRUE within the put_object() function.
+
+Now let’s list all the objects in our bucket using get_bucket().
+
+```{r}
+get_bucket(bucket = "customersegmentationdata")
+```
+
+This returns a list of s3_objects. I like using the rbindlist() function from the data.table package to collapse these objects into a nice and clean data.table (i.e. data.frame).
+
+```{r}
+#data.table::rbindlist(get_bucket(bucket = "customersegentationdata"))
+```
+
+**We can load one of these CSV files from S3 into R with the s3read_using() function. Here are three different ways to do this..**
+
+
+```{r}
+data = s3read_using(FUN = read.csv, object = "s3://customersegmentationdata/data.csv") # use the s3 URI
+
+#s3read_using(FUN = read.csv, bucket = "customersegmentationdata", object = "data.csv")    # bucket and object specified separately
+#s3read_using(FUN = data.table::fread, object = "s3://customersegmentationdata/data.csv")  # use data.table's fread() function for fast CSV reading
+
+```
+
+```{r}
+data
+```
+
+# fetching and Storing data.csv into temp file 
+**Note that the second and third examples use the object’s URI which is given as s3://<bucket-name>/<key>.Alternatively, you could download these files with save_object() and then read them from disc**
+
+```{r}
+#tempfile <- tempfile()  # temp filepath like 
+#save_object(object = "s3://customersegmentationdata/data.csv", file = tempfile)
+#read.csv(tempfile)
+
+```
