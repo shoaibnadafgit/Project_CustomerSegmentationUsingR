@@ -2,23 +2,6 @@
 title: "R Notebook"
 output: html_notebook
 ---
-
-
-```{r}
-
-#data <- read.csv("D://VisualStudioCode//R//CustomerSegmentationusingR//Project_CustomerSegmentat#ionUsingR//data.csv")
-data <- read.csv("E:/Project/CustomerSegmentataion/data.csv")
-data
-
-df <- data.frame(data)
-```
-Get the structure  and summary of the data frame.
-```{r}
-typeof(df)
-str(df)
-summary(df)
-```
-
 # Customer Segmentation using RFM Analysis (R)
 
 **RFM (recency, frequency, monetary) analysis is a marketing technique used to determine quantitatively which customers are the best ones by examining **
@@ -31,6 +14,7 @@ https://help.synerise.com/use-cases/all-cases/_gfx/rfm1.png
 
  Identifying the most valuable RFM segments can capitalize on chance relationships in the data used for this analysis.
  
+
 # Load libraries :
  
 ```{r}
@@ -45,9 +29,32 @@ library(rmarkdown)
 library(lubridate)
 
 ```
+#Data Loading :
+
+```{r}
+
+data <- read.csv("D:/VisualStudioCode/R/CustomerSegmentationusingR/Project_1_Customer_Segmentation_using_R/Project_CustomerSegmentationUsingR/data.csv")
+#data <- read.csv("E:/Project/CustomerSegmentataion/data.csv")
+data
+
+df <- data.frame(data)
+
+
+```
+Get the structure  and summary of the data frame.
+```{r}
+typeof(df)
+str(df)
+summary(df)
+```
+#Data Cleaning :
+
+There are/is a negative value(s) for the variables Quantity and UnitPrice. There are missings for the variable CustomerID. Remove entries with NA for CustomerID and remove entries with negative values for Quantity.
 
 
 ```{r}
+df <- df %>% filter(!is.na(CustomerID)) %>% filter(Quantity>=0)
+
 glimpse(df)
 ```
 
@@ -60,6 +67,7 @@ range(retail$InvoiceDate)
 
 ```{r}
 summary(retail)
+glimpse(retail)
 ```
 
 ```{r}
