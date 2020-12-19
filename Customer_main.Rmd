@@ -111,6 +111,12 @@ Make a new variable called TotalPrice, this variable gives the total price for e
 ```{r}
 data$TotalPrice <- data$Quantity * data$UnitPrice
 data
+
+
+```
+```{r}
+#range 
+range(data$InvoiceDate)
 ```
 
 
