@@ -16,8 +16,8 @@ https://help.synerise.com/use-cases/all-cases/_gfx/rfm1.png
  
 
 # Load libraries :
- 
 ```{r}
+
 library(data.table)
 library(dplyr)
 library(ggplot2)
@@ -27,8 +27,9 @@ library(tidyr)
 library(knitr)
 library(rmarkdown)
 library(lubridate)
-
 ```
+ 
+
 #Data Loading :
 
 ```{r}
