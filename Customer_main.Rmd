@@ -38,50 +38,50 @@ library(lubridate)
 data <- read.csv("D:/VisualStudioCode/R/CustomerSegmentationusingR/Project_1_Customer_Segmentation_using_R/Project_CustomerSegmentationUsingR/data.csv")
 data
 
-df <- data.frame(data)
+data <- data.frame(data)
 ```
 
 ```{r}
-summary(df)
+summary(data)
 ```
 
 # Data cleaning : 
 
 ```{r}
-glimpse(df)
+glimpse(data)
 ```
 
 checking NA values : 
 ```{r}
-sum(is.na(df))
+sum(is.na(data))
 ```
 
 Removing Negative values from Quantity : 
 ```{r}
-df <- df %>% filter(Quantity>=0)
+data <- data %>% filter(Quantity>=0)
 ```
 
 
 ```{r}
-sum(is.na(df))
+sum(is.na(data))
 ```
 
 Filtering the Dataframe : Removing NA values 
 ```{r}
-df <- df %>% filter(!is.na(CustomerID))
+data <- data %>% filter(!is.na(CustomerID))
 ```
 
 ```{r}
-sum(is.na(df))
+sum(is.na(data))
 ```
 
 ```{r}
-summary(df)
+summary(data)
 ```
 
 No of customer records : 
 ```{r}
-nrow(df)
+nrow(data)
 ```
 
 Number Of countries : 
@@ -89,7 +89,7 @@ Number Of countries :
 length(unique(data$Country))
 ```
 
-The custumers are from 38 different countries. Lets visualize this.
+The custumers are from 37 different countries. Lets visualize this.
 
 ```{r}
 #reorder the table and reset the factor to that ordering
@@ -116,7 +116,7 @@ data
 ```
 ```{r}
 #range 
-range(data$InvoiceDate)
+#range(data$InvoiceDate)
 ```
 
 
@@ -163,12 +163,13 @@ timedata <- data %>%
  filter(InvoiceYear==2011) %>% 
   count(InvoiceHour)
 
-ggplot(timedata, aes(InvoiceHour, n)) +  #plot the number of invoices per day               
-    geom_col() +
-  labs(x="hour", y="Number of invoices") 
+#ggplot(timedata, aes(InvoiceHour, n)) +  #plot the number of invoices per day               
+    #geom_col() +
+  #labs(x="hour", y="Number of invoices") 
+#The most transactions are performed between 10 en 16:00 hours. At 12 hours the most transactions are performed.
 ```
 
-The most transactions are performed between 10 en 16:00 hours. At 12 hours the most transactions are performed.
+
 
 
 ##########################################################33
@@ -394,11 +395,21 @@ new_data
 ```
 
 # Visualize results
+We now have segmented our customers in different groups. Lets visualize this:
+
+```{r}
+ggplot(new_data, aes(Recency_group, Frequency_group)) +
+  geom_count() +
+  facet_grid(Monetory_group ~ .) +
+  labs(x="Recency", y="Frequency", title="RFM analysis 2011") 
+```
 
 
 
 
 # Statistical Clustering - KMeans
+
+
 
 
 
