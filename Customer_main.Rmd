@@ -132,6 +132,7 @@ data$InvoiceYear <- year(data$InvoiceDate)
 data$InvoiceMonth <- month(data$InvoiceDate,label=T)
 data$InvoiceWeekday <- wday(data$InvoiceDate, label=T)
 data$InvoiceHour <- hour(data$InvoiceDate)
+#data
 ```
 
 Here we have the number of transactions per month for 2011.
@@ -162,11 +163,12 @@ Most transactions are placed on monday, tuesday, wednesday and thursday.
 timedata <- data %>% 
  filter(InvoiceYear==2011) %>% 
   count(InvoiceHour)
-
+#data
 #ggplot(timedata, aes(InvoiceHour, n)) +  #plot the number of invoices per day               
     #geom_col() +
   #labs(x="hour", y="Number of invoices") 
 #The most transactions are performed between 10 en 16:00 hours. At 12 hours the most transactions are performed.
+#range(data$InvoiceYear)
 ```
 
 
@@ -175,7 +177,8 @@ timedata <- data %>%
 ##########################################################33
 
 ```{r}
-retail <- data.frame(na.omit(df))
+retail <- data.frame(na.omit(data))
+sum(is.na(retail))
 retail$InvoiceDate <- as.Date(retail$InvoiceDate, '%m/%d/%Y %H:%M')
 range(retail$InvoiceDate)
 ```
@@ -195,16 +198,19 @@ range(retail$InvoiceDate)
 table(retail$Country)
 countries <- as.data.frame(table(retail$Country))
 #names(countries)[names(countries) == 'Var1'] <- 'country'
-
+#countries
 #retail <- subset(retail, Country == "United Kingdom")
-
+print("Invoice No ")
 length(unique(retail$InvoiceNo))
+print("Customer id")
 length(unique(retail$CustomerID))
 
 # Identify returns
 retail$item.return <- grepl("C", retail$InvoiceNo, fixed=TRUE)
 retail$purchase.invoice <- ifelse(retail$item.return=="TRUE", 0, 1)
+print("return ")
 table(retail$item.return)
+print("Purchase")
 table(retail$purchase.invoice)
 
 ```
@@ -212,11 +218,16 @@ table(retail$purchase.invoice)
 
 # RFM : 
 
+RECENCY - how recent did a customer bought something
+FREQUENCY - how often does a customer buy something
+MONETARY VALUE - what is the value of the purchased items
+
 ```{r}
 customers <- as.data.frame(unique(retail$CustomerID))
 names(customers) <- "CustomerID"
 ```
 
+consider current date is "01-01-2012"
 ```{r}
 # Recency #
 ###########
@@ -224,6 +235,7 @@ names(customers) <- "CustomerID"
 #retail$recency <- as.Date("2011-12-10") - retail$InvoiceDate
 #data$InvoiceDateTime <- mdy_hm(data$InvoiceDate) #make datetime variable
 #data$InvoiceDate <- ymd(date(data$InvoiceDate)) #make date variable
+
 
 data$Recency <-  as.numeric(mdy("01-01-2012") - data$InvoiceDate)
 
@@ -323,7 +335,6 @@ Combine these the data sets r_data, f_data and m_data
 
 ```{r}
 
-
 new_data <- r_data %>% 
   full_join(m_data, by="CustomerID") %>% 
   full_join(f_data, by="CustomerID")
@@ -349,8 +360,8 @@ These four variables should be segmented in equal groups. Lets start with the fi
 
 new_data$Recency_group <- cut(new_data$Recency, 
                               quantile(new_data$Recency, 
-                              probs=seq(0,1,0.25)), 
-                              ordered_result=T, 
+                              probs =seq(0,1,0.25)), #0 0.25 0.5 0.75 1
+                              ordered_result=T,  #  should the result be an ordered factor?
                               include.lowest=T) # segment data into groups
 
 new_data$Recency_group <- factor(new_data$Recency_group, 
@@ -368,7 +379,7 @@ table(new_data$Frequency)
 ```
 Aas shown in the table above, it is not possible to use quantile to divide the population in four equal groups. This is because the majority of customers only places 1 or 2 orders (n=2305) and there are very few customers that place many orders. Lets try the following segmentation
 
-1 order: n=1503 2-3 orders: n=1304 4-9 orders: n=1071 10 or more: n=341
+1 order: n=1494 2-3 orders: n=1340 4-9 orders: n=1111 10 or more: n=378
 
 ```{r}
 new_data$Frequency_group <- cut(new_data$Frequency, 
@@ -382,9 +393,10 @@ new_data
 ```
 
 
-Now proceed with the value monetary value
+Now proceed with the monetary value
 
 ```{r}
+#new_data$Monetary
 new_data$Monetory_group <- cut(new_data$Monetary, 
                               quantile(new_data$Monetary, probs=seq(0,1,0.25)), 
                               ordered_result=T, include.lowest=T) #segment into groups
@@ -400,12 +412,14 @@ We now have segmented our customers in different groups. Lets visualize this:
 ```{r}
 ggplot(new_data, aes(Recency_group, Frequency_group)) +
   geom_count() +
-  facet_grid(Monetory_group ~ .) +
+  facet_grid(Monetory_group ~ .) + #If you have only one variable with many levels,
   labs(x="Recency", y="Frequency", title="RFM analysis 2011") 
 ```
 
 
-In this figure the Recency is put on the x-axis. Customers placed an order very recent, recent, less recent or not recent. Frequency is placed on the y-axis. Customers ordered items very frequent (more than 10 times), frequent (between 4 and 9 times), rare (2 or 3 times) or they placed only one order (very rare). Customers spend a small, medium, large or very large amount of money in total.
+In this figure the Recency is put on the x-axis. Customers placed an order very recent, recent, less recent or not recent. Frequency is placed on the y-axis. 
+
+**Customers ordered items very frequent (more than 10 times), frequent (between 4 and 9 times), rare (2 or 3 times) or they placed only one order (very rare). Customers spend a small, medium, large or very large amount of money in total.**
 
 From the figure it can be observed, that customers that placed a recent order, were more likely to be frequent buyers and they were also more likely to spend a larger amount of money. When customers placed an order a long time ago, they were more likely to place only one or a few orders and they were also more likely to spend a small amount of money.
 
