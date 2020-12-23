@@ -405,6 +405,12 @@ ggplot(new_data, aes(Recency_group, Frequency_group)) +
 ```
 
 
+In this figure the Recency is put on the x-axis. Customers placed an order very recent, recent, less recent or not recent. Frequency is placed on the y-axis. Customers ordered items very frequent (more than 10 times), frequent (between 4 and 9 times), rare (2 or 3 times) or they placed only one order (very rare). Customers spend a small, medium, large or very large amount of money in total.
+
+From the figure it can be observed, that customers that placed a recent order, were more likely to be frequent buyers and they were also more likely to spend a larger amount of money. When customers placed an order a long time ago, they were more likely to place only one or a few orders and they were also more likely to spend a small amount of money.
+
+This information could be helpfull to target specific groups of customers.
+
 
 
 # Statistical Clustering - KMeans
