@@ -430,8 +430,42 @@ From the figure it can be observed, that customers that placed a recent order, w
 This information could be helpfull to target specific groups of customers.
 
 
-
 # Statistical Clustering - KMeans
+
+```{r}
+# Creating Clusters based on the RFM Table using Unsupervised Statistical Learning
+set.seed(2020)
+clusters <- kmeans(scale(new_data[,2:4]), 3, nstart = 1) # Performing kmeans with RFM variables and creating 3 clusters. 
+
+new_data$Cluster <- as.factor(clusters$cluster) # Attaching the results to CustomersID to identify each customer's cluster
+```
+
+
+```{r}
+KMeans_Results <- new_data %>%
+  group_by(Cluster) %>%
+  summarise('Number of Users' = n(),
+            'Recency Mean' = round(mean(Recency)),
+            'Frequency Mean' = scales::comma(round(mean(Frequency))),
+            'Monetary Value Mean' = scales::dollar(round(mean(Monetary))),
+            'Cluster Revenue' = scales::dollar(sum(Monetary))
+            )
+KMeans_Results
+#DT::datatable((KMeans_Results),
+ #             rownames = FALSE) # Display cluster means to identify their value to the business
+```
+
+
+```{r}
+Cluster_size_visz <- ggplot(KMeans_Results, aes(Cluster, `Number of Users`)) +
+  geom_text(aes(label = `Number of Users`), vjust = -0.3) +
+         geom_bar(aes(fill=Cluster), stat='identity') +
+  ggtitle('Number of Users per Cluster') + 
+  xlab("Cluster Number") +
+  theme_classic()
+         print(Cluster_size_visz)
+```
+
 
 
 
