@@ -1,10 +1,10 @@
 ---
-title: "R Notebook"
+title: "Main Customer Segmentation"
 output: html_notebook
 ---
 # Customer Segmentation using RFM Analysis (R)
 
-**RFM (recency, frequency, monetary) analysis is a marketing technique used to determine quantitatively which customers are the best ones by examining **
+**RFM (recency, frequency, monetary) analysis is a marketing technique used to determine quantitatively which customers are the best ones by examining**
 
 * how recently a customer has purchased (recency), 
 * how often they purchase (frequency), 
@@ -12,7 +12,7 @@ output: html_notebook
 
 https://help.synerise.com/use-cases/all-cases/_gfx/rfm1.png
 
- Identifying the most valuable RFM segments can capitalize on chance relationships in the data used for this analysis.
+Identifying the most valuable RFM segments can capitalize on chance relationships in the data used for this analysis.
  
 
 # Load libraries :
@@ -76,7 +76,7 @@ sum(is.na(data))
 ```
 
 ```{r}
-summary(data)
+#summary(data)
 ```
 
 No of customer records : 
@@ -102,7 +102,7 @@ data %>%
     geom_bar(stat="identity") +                      # plot histogram
     coord_flip()                                     # flip the coordinates
 ```
-The goods are shipped to 38 unique countries. The majority of goods is shipped to the United Kingdom. After the United Kingdom, Germany, France and EIRE (=Ireland) are the most important countries.
+The goods are shipped to 37 unique countries. The majority of goods is shipped to the United Kingdom. After the United Kingdom, Germany, France and EIRE (=Ireland) are the most important countries.
 
 # Feature Engineering :
 
@@ -111,7 +111,6 @@ Make a new variable called TotalPrice, this variable gives the total price for e
 ```{r}
 data$TotalPrice <- data$Quantity * data$UnitPrice
 data
-
 
 ```
 ```{r}
@@ -122,6 +121,7 @@ data
 
 
 ```{r}
+
 data$InvoiceDateTime <- mdy_hm(data$InvoiceDate) #make datetime object
 data$InvoiceDate <- ymd(date(data$InvoiceDateTime)) #make date variable
 head(data)
@@ -179,6 +179,7 @@ timedata <- data %>%
 ```{r}
 retail <- data.frame(na.omit(data))
 sum(is.na(retail))
+retail
 retail$InvoiceDate <- as.Date(retail$InvoiceDate, '%m/%d/%Y %H:%M')
 range(retail$InvoiceDate)
 ```
@@ -197,6 +198,7 @@ range(retail$InvoiceDate)
 ```{r}
 table(retail$Country)
 countries <- as.data.frame(table(retail$Country))
+#countries
 #names(countries)[names(countries) == 'Var1'] <- 'country'
 #countries
 #retail <- subset(retail, Country == "United Kingdom")
@@ -212,6 +214,7 @@ print("return ")
 table(retail$item.return)
 print("Purchase")
 table(retail$purchase.invoice)
+#retail
 
 ```
 
@@ -225,7 +228,9 @@ MONETARY VALUE - what is the value of the purchased items
 ```{r}
 customers <- as.data.frame(unique(retail$CustomerID))
 names(customers) <- "CustomerID"
+customers
 ```
+2010/12/09  -  2011/12/09
 
 consider current date is "01-01-2012"
 ```{r}
@@ -238,7 +243,7 @@ consider current date is "01-01-2012"
 
 
 data$Recency <-  as.numeric(mdy("01-01-2012") - data$InvoiceDate)
-
+#data
 r_data <- data %>% 
   group_by(CustomerID) %>% 
   summarize(Recency=min(Recency))
@@ -248,7 +253,7 @@ r_data
 ```
 
 Recency
-Recency was calculated as one of the features for the segmentation analysis. In this case recency has been calculated as follows, time of customer’s last purchase minus the last transaction date in days.
+Recency was calculated as one of the features for the segmentation analysis. In this case recency has been calculated as follows, time of customer’s last purchase minus Latest date 
 
 
 ```{r}
@@ -375,7 +380,6 @@ Now we can proceed with the variable called frequency. This variable will also b
 
 ```{r}
 table(new_data$Frequency)
-
 ```
 Aas shown in the table above, it is not possible to use quantile to divide the population in four equal groups. This is because the majority of customers only places 1 or 2 orders (n=2305) and there are very few customers that place many orders. Lets try the following segmentation
 
